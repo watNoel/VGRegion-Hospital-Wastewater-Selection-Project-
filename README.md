@@ -1,7 +1,7 @@
 # VGRegion-Hospital-Wastewater-Selection-Project
 On selection toward antibiotic-resistant bacteria from hospital and municipal wastewater in the Västra Götaland Region of west Sweden
 
-
+##  Statistical analysis of resistance rates in *E. coli* and ARG carriage rates 
 To run the scripts for the statistical analysis of resistance rates in e.coli and ARG carriage rates,*ecoli_resistance_rates_models.R* and *metagenomic_arg_models.R* , the following R packages are required along with an R installation ( R version 4.4.0 tested on windows x64-based laptop). Typical installation time of the packages is around 10 minutes. 
 
 | Package   | Version   | Purpose                                         |
