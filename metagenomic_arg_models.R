@@ -1,6 +1,9 @@
 # Author: Noel Waters Feb 2026
-# Purpose: generalized linear mixed effects models for modelling arg carriage rates
-# in bacteria in municipal wastewater treatment plant influents vs hospitals and biofilms vs wastewaters
+# Purpose: generalized linear mixed effects models for modelling arg carriage rates in bacteria
+# in municipal wastewater treatment plant influents vs hospitals and biofilms vs wastewaters
+
+# Separate analyses are performed for the data with and without the mölndal biofilm sample included
+# outputs include statistics used in the publication, s.a anova and estimated differences in arg carriages betweend waters/biofilms in hopsitals and municipal influent sites.
 
 
 {
@@ -13,36 +16,52 @@
 
 
 
-# Preprocess input data. --------------------------------------------------
+# Read in arg counts and metadata --------------------------------------------------
+
+# modify paths to the data and file reading function needed! Examples are provided for csv,tsv and xlsx
 
 
-resfinder_counts<-read.csv("../../metagenomics/ResFinder_Counts_Final.csv",header = TRUE) 
+resfinder_counts<-readxl::read_xlsx("./input/ResFinder_DB_counts_by_group.xlsx")
+#read_tsv("./input/ResFinder_DB_counts_by_group.tsv")
+
+#read.csv("../../metagenomics/ResFinder_Counts_Final.csv",header = TRUE) 
+
+
+# Only use the arg counts, not distinguished by class.
+resfinder_counts<-resfinder_counts |> dplyr::select(Sample,Count)
+
+
 metadata<-readxl::read_xlsx("../../metagenomics/metadata.xlsx") |> rename(Sample_Type=Type,
                                                                           Site_Type=Type_Site)
-
 metadata$Sample_Type[metadata$Sample_Type=="Wastewater"]<-"Water"
+
+#colnames(metadata)
+# Should say
+#"Sample"            "Total Reads_After" "Sample_ID"         "Sample_Type"       "Site_Type"         "Group"             "Site"              "Date"             
+#"Organism"          "geo_loc_name"      "sample_title" 
+
+
+
 
 # merge these two:
 resfinder_counts<- resfinder_counts |> merge(metadata,by="Sample")
-
-resfinder_counts<- resfinder_counts |> rename(Total_Reads=`Total Reads_After`) |> dplyr::select(-c(X))
-
+resfinder_counts<- resfinder_counts |> rename(Total_Reads=`Total Reads_After`) 
 resfinder_counts$CPM<-resfinder_counts$Count/resfinder_counts$Total_Reads*1e6
 
 
 
+
+
+
 # Check that names are correctly spelled.
-
 resfinder_counts$Site<-str_replace_all(str_to_title(str_replace_all(resfinder_counts$Site,"_"," "))," ","_")
-
-
-
-# updated total reads, just 1/3 of the previous values..
 resfinder_counts$Site_Type<-ifelse(resfinder_counts$Site_Type=="Hospital","Hospital",
                                    ifelse(grepl("influent|incoming",ignore.case = TRUE,x = resfinder_counts$Site),"Influent",
                                           ifelse(grepl("effluent",ignore.case = TRUE,x = resfinder_counts$Site),"Effluent","Fix")
                                    )
 )
+
+
 # sum across ALL arg types since we care about the overall
 resfinder_totals<-resfinder_counts |>  group_by(Sample_ID,Sample,Sample_Type,Site_Type,Site,Total_Reads) |> 
   summarise(Total_CPM=sum(CPM),
@@ -68,6 +87,7 @@ resfinder_totals<-resfinder_counts |>  group_by(Sample_ID,Sample,Sample_Type,Sit
 ggplot(resfinder_totals,aes(x=Site_Type,y=log2CPM,
                               tal_CPM,fill=Sample_Type)) + geom_boxplot()+ geom_point(position=position_jitterdodge(jitter.width=0.1), pch=24,size=2,alpha=0.6)
 
+
 # Here we see the distribution across site types
 ggplot(resfinder_totals ,
        aes(y=log2CPM,x=Site,color=Sample_Type, group=Sample))+
@@ -79,6 +99,8 @@ ggplot(resfinder_totals ,
 # for the fact that some samples come from the same sites.
 
 
+
+
 # For the modelling, we drop the effluent samples
 
 table(resfinder_totals$Site_Type)
@@ -86,6 +108,7 @@ table(resfinder_totals$Site_Type)
 resfinder_totals_no_effluent<-resfinder_totals |> filter(Site_Type!="Effluent")
 
 # the outlying mölndal biofilm sample
+
 mölndal<-resfinder_totals |> filter(Site=="Mölndal" & Sample_Type=="Biofilm") |> pull(Sample)
 
 no_mölndal<- resfinder_totals_no_effluent |> filter(Sample!=mölndal)
@@ -99,14 +122,19 @@ influents<-municipal_biofilms |> filter(Site_Type=="Influent") |> pull(log2CPM)
 effluents<-municipal_biofilms |> filter(Site_Type=="Effluent") |> pull(log2CPM)
 
 t.test(influents,effluents, var.equal = FALSE)
-#unpaired, comparing all to all is highly significant. A paired test would also be.
+
+rm(municipal_biofilms,influents,effluents)
+
+
+#unpaired, comparing all to all is highly significant.
 
 
 
 
 # Modelling of arg counts -------------------------------------------------
-# Idea is to Model the Total Counts and use the Counts per Million as offset, such that what
+# Idea is to Model the Total Counts and use the million reads as offset, such that what
 #is effectively modelled are the ARG counts per million reads
+
 # This is anologous to the model used for ecoli where it was resistant ecoli per ecoli.
 # Since we have counts data again,and some relatedness of samples (some come from the same site) 
 # negative binomial regression with random effect for the sites comes in handy.
@@ -159,8 +187,6 @@ print(anova(four_fits$fit2_no_interaction,four_fits$fit2))
 get_aic_and_anova(nb_fit)
 
 # The anova tells of a highly significant interaction term, and also that the simpler random effect structure was better. Proceed with that.
-
-
 
 
 nb_model_by_site_type<-function(df,site_type, which_fit=1){
@@ -240,7 +266,7 @@ ggplot(resfinder_totals_no_effluent, aes(y = Total_Count/Total_Millions,x=Site,c
 
 
 
-# Same analysis mölndal biofilm dropped -------------------------------------------
+# Same analysis with mölndal biofilm sample dropped -------------------------------------------
 
 nb_fit_no_mölndal<-nb_fitter(df=no_mölndal)
 get_aic_and_anova(nb_fit_no_mölndal)
@@ -254,7 +280,7 @@ key_stats_by_site_type_no_mölndal
 emms_by_site_type_no_mölndal<-purrr::map_df(by_st_no_mölndal,pluck("diffs_df"))
 emms_by_site_type_no_mölndal
 
-# Illustration of model
+# Illustration of modelled estimated marginal means
 ggplot(emms_by_site_type_no_mölndal , aes(y=emmean,x=Site_Type,color=Sample_Type))+
   geom_errorbar(aes(ymax=asymp.UCL,ymin=asymp.LCL), position=position_dodge(width=0.95))+
   geom_point(position=position_dodge(width=0.95))
@@ -271,13 +297,14 @@ anova_res<-anova(nb_fit$fit1_no_interaction,nb_fit$fit1)
 anova_res_no_mölndal<-anova(nb_fit_no_mölndal$fit1_no_interaction,nb_fit_no_mölndal$fit1) 
 anova_res_no_mölndal
 
+
 writexl::write_xlsx(list(anova_for_interaction=anova_res,
-                         metagenomics_stats=key_stats_by_site,
+                         metagenomics_stats=key_stats_by_site_type,
                          metagenomics_means=emms_by_site_type,
                          anova_for_interaction_no_mölndal=anova_res_no_mölndal,
-                         metagenomics_stats_no_mölndal=key_stats_by_site_no_mölndal,
+                         metagenomics_stats_no_mölndal=key_stats_by_site_type_no_mölndal,
                          metagenomics_means_no_mölndal=emms_by_site_type_no_mölndal,
-                         metagenomics_data=resfinder_totals), path = "./output/metagenomics_stats_18_02_2026.xlsx")
+                         metagenomics_data=resfinder_totals), path = "./output/metagenomics_stats.xlsx")
 
 
 
