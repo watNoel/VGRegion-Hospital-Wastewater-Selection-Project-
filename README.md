@@ -2,7 +2,7 @@
 On selection toward antibiotic-resistant bacteria from hospital and municipal wastewater in the Västra Götaland Region of west Sweden
 
 ##  Statistical analysis of resistance rates in *E. coli* and ARG carriage rates 
-To run the scripts for the statistical analysis of resistance rates in e.coli and ARG carriage rates,*ecoli_resistance_rates_models.R* and *metagenomic_arg_models.R* , the following R packages are required along with an R installation ( R version 4.4.0 tested on windows x64-based laptop). Typical installation time of the packages is around 5-10 minutes. 
+To run the scripts for the statistical analysis of resistance rates in e.coli and ARG carriage rates,*ecoli_resistance_rates_models.R* and *metagenomic_arg_models.R* respectively , the following R packages are required along with an R installation ( R version 4.4.0 tested on windows x64-based laptop). Typical installation time of the packages is around 5-10 minutes. 
 
 | Package   | Version   | Purpose                                         |
 |-----------|-----------|-------------------------------------------------|
@@ -20,7 +20,7 @@ The expected output files, providing comprehensive statistical outputs from the 
 
 
 For the scripts to function, take care to update the paths to the different datasets in the scripts.
-The scripts assume there is a folder called output in the directory where you run the code. If not, create such a folder or change the output destination of the created xlsx files.
+The scripts assume there is a folder called output in the directory where you run the code. If it doesn't, create such a folder or change the output destination of the created xlsx files.
 NOTE: Prior to publication, all inputs and outtputs have been provided as encrypted files and a passkey provided to reviewers. Upon publication, this encryption will be removed.
 
 
