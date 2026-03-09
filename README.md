@@ -20,8 +20,8 @@ The expected output files, providing comprehensive statistical outputs from the 
 
 
 For the scripts to function, take care to update the paths to the different datasets in the scripts.
-The scripts assume there is a folder called output in the directory where you run the code. If it doesn't, create such a folder or change the output destination of the created xlsx files.
-NOTE: Prior to publication, all inputs and outtputs have been provided as encrypted files and a passkey provided to reviewers. Upon publication, this encryption will be removed.
+The scripts assume there is a folder called output in the directory where you run the code. If it doesn't, create such a folder or change the output destination of the created xlsx files. \\
+NOTE: Prior to publication, all inputs and outputs have been provided as encrypted files and a passkey provided to reviewers. Upon publication, this encryption will be removed.
 
 
 ## Metagenomic ARG Detection Pipeline
