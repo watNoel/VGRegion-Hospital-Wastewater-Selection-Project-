@@ -26,12 +26,17 @@ The scripts assume there is a folder called output in the directory where you ru
 
 NOTE: Prior to publication, all inputs and outputs have been provided as encrypted files and a passkey provided to reviewers. For testing the scripts during review, remove the encryption in order for R to be able to load the data. Upon publication, this encryption will be removed.
 
+___
 
 ## Metagenomic ARG Detection Pipeline
 
-The script `arg_counter.py` processes Illumina paired-end metagenomic reads to identify and quantify antibiotic resistance genes (ARGs). The workflow includes read quality control, trimming, database preparation, sequence alignment against resistance gene databases, result filtering, ARG counting, and taxonomic profiling.
+Below is a quick and detailed description of the metagenomics pipline used in this study:
 
-The pipeline was tested on a server running Red Hat Enterprise Linux (v7.9) consisting of 80 Intel(R) Xeon(R) Gold 6230 CPU @ 2.10GHz CPUs and 754 G RAM. The base programming language was **Python 3.9.15** and requires several Python libraries and external bioinformatics tools installed via **Conda 22.9.0**.
+### Hardware Description
+
+The script `arg_counter.py` processes Illumina paired-end metagenomic sequencing reads to identify and quantify antibiotic resistance genes (ARGs). The workflow includes read quality control, read trimming, database preparation, sequence alignment against resistance gene databases, result filtering, ARG quantification, and taxonomic profiling.
+
+The pipeline was tested on a server running **Red Hat Enterprise Linux (v7.9)** equipped with **80 Intel® Xeon® Gold 6230 CPUs (2.10 GHz)** and **754 GB of RAM**. The primary programming language is **Python 3.9.15**, and the workflow requires several Python libraries and external bioinformatics tools installed using **Conda 22.9.0**.
 
 ### Python Dependencies
 
@@ -58,7 +63,7 @@ All other modules used in the script (e.g. `os`, `subprocess`, `re`, `logging`, 
 
 ### Example Conda Environment Installation
 
-The required Python libraries and bioinformatics tools can be installed using **Conda**. The following example creates an environment that contains the main dependencies required to run the pipeline for steps 1-6 (excluding taxanomic analysis). Specific steps in the pipeline can be specified by binary switching (i.e. `step_1=True`, `step_2=False`).
+The required Python libraries and bioinformatics tools can be installed using **Conda**. The following example creates an environment that contains the main dependencies required to run the pipeline for steps 1-6 (excluding taxonomic analysis). Specific steps in the pipeline can be specified by binary switching (i.e. `step_1=True`, `step_2=False`).
 
 ```bash
 conda create -n arg_counter \
@@ -76,9 +81,9 @@ conda create -n arg_counter \
   ```
 
 
-It is important to note that in order to run the taxononmic analysis, it is highly recommended to run steps 1-6 first. This ensures that all nessesary files and directories are generated. 
+Running **steps 1–6** prior to taxonomic profiling is strongly recommended to ensure that all required intermediate files and directories are generated.
 
-When running the taxonomic analysis `step_7` it is nessesary to create an independent conda environment.
+When running the taxonomic analysis `step_7` it is necessary to create an independent conda environment.
 
 ```bash
 conda create -n sylph \
@@ -92,25 +97,25 @@ conda create -n sylph \
 The pipeline consists of several steps that can be enabled or disabled in the script:
 
 1. **Initial quality control**  
-   Raw sequencing reads are assessed using FastQC and summarized with MultiQC.
+   Raw sequencing reads are assessed using FastQC and summarized with MultiQC. This process runs less than 24 hours, depending on multiprocessing.
 
 2. **Read trimming**  
-   Adapter sequences and low-quality bases are removed using BBduk.
+   Adapter sequences and low-quality bases are removed using BBduk. This process runs less than 24 hours, depending on multiprocessing.
 
 3. **Post-trimming quality control**  
-   FastQC and MultiQC are run again to verify trimming performance.
+   FastQC and MultiQC are run again to verify trimming performance. This process runs less than 24 hours, depending on multiprocessing.
 
 4. **Database preparation**  
-   Reference resistance gene sequences are clustered with VSEARCH, translated to protein sequences with EMBOSS Transeq, filtered for valid open reading frames, and formatted as DIAMOND databases.
+   Reference resistance gene sequences are clustered with VSEARCH, translated to protein sequences with EMBOSS Transeq, filtered for valid open reading frames, and formatted as DIAMOND databases. This process runs within one hour.
 
 5. **ARG detection**  
-   Trimmed reads are aligned against the reference ARG database using DIAMOND BLASTX.
+   Trimmed reads are aligned against the reference ARG database using DIAMOND BLASTX. This step required approximately **132 hours** when executed using four parallel processes.
 
 6. **ARG counting and phenotype annotation**  
-   Alignment results are filtered, merged with resistance phenotype information, and summarized into counts per resistance class.
+   Alignment results are filtered, merged with resistance phenotype information, and summarized into counts per resistance class. This process runs within one hour.
 
 7. **Taxonomic profiling**  
-   Metagenomic composition can be estimated using Sylph and Sylph-tax with the **GTDB_r226** reference database.
+   Metagenomic composition can be estimated using Sylph and Sylph-tax with the **GTDB_r226** reference database. This process runs less than 24 hours.
 
 ### Usage
 
@@ -121,9 +126,9 @@ The pipeline is configured directly within the script using several variables:
 - `out_dir` – output directory for results  
 - `db_dir` – directory containing reference databases  
 
-The python metagenomics pipeline file `arg_counter.py` should be placed in the working directory (`wdir`).
+The script `arg_counter.py` should be located in the working directory (`wdir`).
 
-Ensure that within the `wdir` there exists a `data/` directory that contains `output/` where the results will be generated and the `dataDirectory/` folder that contains all the Illumina paired-end FASTQ files. Moreover, ensure that `databases/` also exists where the `ResFinder_DB/` is located that contains all the files downloadable from **ResFinder** `git clone https://git@bitbucket.org/genomicepidemiology/resfinder_db.git`.
+Ensure that within the `wdir` there exists a `data/` directory that contains `output/` where the results will be generated and the `dataDirectory/` folder that contains all the Illumina paired-end FASTQ files. Moreover, ensure that `databases/` also exists where the `ResFinder_DB/` is located that contains all the files downloadable from **ResFinder** `wget https://bitbucket.org/genomicepidemiology/resfinder_db/get/d1e607b8989260c7b6a3fbce8fa3204ecfc09022.zip`.
 
 The pipeline expects Illumina paired-end FASTQ files (`*.fastq.gz`) with filenames following the pattern:
 
@@ -149,12 +154,12 @@ step_4 = False
 step_4_1 = False
 #Run Diamond
 step_5 = False
-#Perform analys on count data
+#Perform analysis on count data
 step_6 = False
 # Taxonomic Profiling
 step_7 = False
 ```
-In order for successful completion of the pipeline the steps should be run in sequeuence.
+Steps should be executed sequentially to ensure successful completion of the pipeline.
 
 **Example execution**:
 
@@ -169,13 +174,17 @@ Activate the environment before running the pipeline for only taxanomic analysis
 ```bash
 conda activate sylph
 ```
-**Steps 1-6 and 7 cannot be run in the same session due to the requirement of different active conda environments as shown above!**
+**Steps 1–6 and step 7 cannot be executed within the same session**, as they require different Conda environments.
 
 And in the bash terminal:
 
 ```bash
 python arg_counter.py
 ```
+
+### Runtime
+Due to the large volume of sequencing data typically processed, running this analysis on a desktop computer is not recommended. The pipeline was tested on a server running **Red Hat Enterprise Linux (v7.9)** with **80 Intel® Xeon® Gold 6230 CPUs (2.10 GHz)** and **754 GB RAM**. The most time-consuming step was **DIAMOND BLASTX**, which required approximately **132 hours** when executed using four parallel processes. Overall, the entire pipeline can typically be completed in **approximately seven days**.
+
 
 ### Output
 
@@ -258,7 +267,7 @@ All three scripts are designed to be run in R (tested on **R 4.5.1** within the 
     ```
 2. Ensure the metadata CSV and taxonomy/ARG input files exist and are named correctly within the same working directory:
 
-* Metadata: `metadata.csv` - Found as part of the supplementry files.
+* Metadata: `metadata.csv` - Found as part of the supplementary files.
 
 * ARG counts: `ResFinder_DB_counts_by_group.tsv` - Output of the metagenomics pipeline.
 
@@ -281,6 +290,18 @@ source("ARG_Counts_Script.R")
 source("Beta_Diversity_Script.R")
 source("Taxonomy_Script.R")
 ```
+
+### Runtime
+
+All R scripts are lightweight and designed for downstream analysis and visualization. When executed on a standard desktop computer (tested within **R 4.5.1** in **RStudio IDE 2025.05.1**), each script typically completes within **5 minutes** depending on dataset size.
+
+Approximate runtimes:
+
+| Script | Typical Runtime |
+|------|------|
+| `ARG_Counts_Script.R` | < 5 minutes |
+| `Beta_Diversity_Script.R` | < 5 minutes |
+| `Taxonomy_Script.R` | < 5 minutes |
 
 ### Output
 Each script generates plots and summary tables:
@@ -306,3 +327,13 @@ Each script generates plots and summary tables:
 * Summarized relative abundance tables per group embedded in R objects (`complete_df_summarized`)
 
 * All figures are exported as both TIFF (high-res) and SVG (vector) formats.
+
+## Citation
+
+If you use this pipeline, or any other scripts in your research, please cite:
+
+<your paper or thesis>
+
+## License
+
+MIT License
